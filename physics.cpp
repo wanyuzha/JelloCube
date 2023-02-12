@@ -14,9 +14,9 @@
 
 double computeOriginalDistance(position& a, position& b)
 {
-    return sqrt((a.x / 7 - b.x / 7) * (a.x / 7 - b.x / 7)
-                + (a.y / 7 - b.y / 7) * (a.y / 7 - b.y / 7)
-                + (a.z / 7 - b.z / 7) * (a.z / 7 - b.z / 7));
+    return sqrt((a.x - b.x) * (a.x - b.x)
+                + (a.y - b.y) * (a.y - b.y)
+                + (a.z - b.z) * (a.z - b.z))/7;
 }
 
 double computeCurrentDistance(point& a, point& b)
@@ -30,7 +30,7 @@ point computeHookLaw(double kHook, partitcle& a, partitcle &b)
 {
     double L = computeCurrentDistance(a.p, b.p);
     double rest = computeOriginalDistance(a.pos, b.pos);
-    point Lvector = b.p - a.p;
+    point Lvector = a.p - b.p;
     double coefficient = - kHook * (L - rest) / L;
     point F = {.x = coefficient * Lvector.x, .y = coefficient * Lvector.y, .z = coefficient * Lvector.z};
     return F;
@@ -39,7 +39,7 @@ point computeHookLaw(double kHook, partitcle& a, partitcle &b)
 point computeDampingLaw(double kDamp, partitcle &a, partitcle& b)
 {
     double L = computeCurrentDistance(a.p, b.p);
-    point Lvector = b.p - a.p;
+    point Lvector = a.p - b.p;
     double coefficient = - kDamp * ((a.v - b.v) * Lvector) / (L * L);
     point F = {.x = coefficient * Lvector.x, .y = coefficient * Lvector.y, .z = coefficient * Lvector.z};
     return F;
@@ -134,17 +134,17 @@ std::vector<partitcle> computeCollisionSprings(world * jello, int x, int y, int 
     {
         if(jello->p[x][y][z].x < -2 || jello->p[x][y][z].x > 2)
         {
-            partitcle xc = {.p = {.x = jello->p[x][y][z].x<-2?-2:2, .y = jello->p[x][y][z].y, .z = jello->p[x][y][z].z}, .pos = {.x = x, .y = y, .z = z}, .v = {0,0,0}};
+            partitcle xc = {.p = {.x = jello->p[x][y][z].x<-2.0?-2.0:2.0, .y = jello->p[x][y][z].y, .z = jello->p[x][y][z].z}, .pos = {.x = x, .y = y, .z = z}, .v = {0,0,0}};
             collisions.push_back(xc);
         }
         if(jello->p[x][y][z].y < -2 || jello->p[x][y][z].y > 2)
         {
-            partitcle yc = {.p = {.x = jello->p[x][y][z].x, .y = jello->p[x][y][z].y<-2?-2:2, .z = jello->p[x][y][z].z}, .pos = {.x = x, .y = y, .z = z}, .v = {0,0,0}};
+            partitcle yc = {.p = {.x = jello->p[x][y][z].x, .y = jello->p[x][y][z].y<-2.0?-2.0:2.0, .z = jello->p[x][y][z].z}, .pos = {.x = x, .y = y, .z = z}, .v = {0,0,0}};
             collisions.push_back(yc);
         }
         if(jello->p[x][y][z].z < -2 || jello->p[x][y][z].z > 2)
         {
-            partitcle zc = {.p = {.x = jello->p[x][y][z].x, .y = jello->p[x][y][z].y, .z = jello->p[x][y][z].z<-2?-2:2}, .pos = {.x = x, .y = y, .z = z}, .v = {0,0,0}};
+            partitcle zc = {.p = {.x = jello->p[x][y][z].x, .y = jello->p[x][y][z].y, .z = jello->p[x][y][z].z<-2.0?-2.0:2.0}, .pos = {.x = x, .y = y, .z = z}, .v = {0,0,0}};
             collisions.push_back(zc);
         }
     }
@@ -174,16 +174,16 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
                   partitcle cur = {.p = jello->p[x][y][z], .pos = {.x = x, .y = y, .z = z}, .v = jello->v[x][y][z]};
                   for(auto & p : springs)
                   {
-                        point Fhook = computeHookLaw(0.2, cur, p);
-                        point Fdamp = computeDampingLaw(0, cur, p);
+                        point Fhook = computeHookLaw(500, cur, p);
+                        point Fdamp = computeDampingLaw(0.2, cur, p);
                         F = F + Fhook + Fdamp;
                   }
                   // compute collisions
                   collisions = computeCollisionSprings(jello, x, y, z);
                   for(auto& p : collisions)
                   {
-                      point FCollisionHook = computeHookLaw(1, cur, p);
-                      point FCollisionDamp = computeDampingLaw(0, cur, p);
+                      point FCollisionHook = computeHookLaw(1000, cur, p);
+                      point FCollisionDamp = computeDampingLaw(0.2, cur, p);
                       F = F + FCollisionHook + FCollisionDamp;
                   }
 
