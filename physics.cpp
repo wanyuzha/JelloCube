@@ -161,6 +161,24 @@ int computeInterval(double p, double interval, double& proportion)
     return index;
 }
 
+
+std::vector<partitcle> computeInclinedCollision(world * jello, int x, int y, int z)
+{
+    std::vector<partitcle> inclinedCollisions;
+    double x1 = jello->p[x][y][z].x;
+    double y1 = jello->p[x][y][z].y;
+    double z1 = jello->p[x][y][z].z;
+    if(jello->a * x1 + jello->b * y1 + jello->c * z1 + jello->d < 0)
+    {
+        double t = (jello->a * x1 + jello->b * y1 + jello->c * z1 + jello->d)
+                /(jello->a * jello->a + jello->b * jello->b + jello->c * jello->c);
+        partitcle ic = {.p = {.x = x1 - t * jello->a, .y = y1 - t * jello->b, .z = z1 - t * jello->c}, .pos = {x, y, z}, .v = {0,0,0}};
+        inclinedCollisions.push_back(ic);
+    }
+
+    return inclinedCollisions;
+}
+
 /* Computes acceleration to every control point of the jello cube, 
    which is in state given by 'jello'.
    Returns result in array 'a'. */
@@ -195,6 +213,17 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
                       point FCollisionHook = computeHookLaw(2000, cur, p);
                       point FCollisionDamp = computeDampingLaw(0.2, cur, p);
                       F = F + FCollisionHook + FCollisionDamp;
+                  }
+                  // compute collisions with inclined plane
+                  if(jello->incPlanePresent == 1)
+                  {
+                      std::vector<partitcle> inclinedCollisions = computeInclinedCollision(jello, x, y, z);
+                      for(auto& p : inclinedCollisions)
+                      {
+                          point FCollisionHook = computeHookLaw(2000, cur, p);
+                          point FCollisionDamp = computeDampingLaw(0.2, cur, p);
+                          F = F + FCollisionHook + FCollisionDamp;
+                      }
                   }
                   // interpolation
                   if(jello->resolution > 0)

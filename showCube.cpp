@@ -291,3 +291,22 @@ void showBoundingBox()
   return;
 }
 
+void showInclinedPlane()
+{
+    glColor4f(1.0, 0.92, 0.80, 0.5);
+    glEnable(GL_BLEND); //Enable blending.
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //Set blending function.
+
+    glBegin(GL_TRIANGLES);
+    glVertex3f(1.0, -2.0, -2.0);
+    glVertex3f(-2.0, 1.0, -2.0);
+    glVertex3f(-2.0, -2.0, 1.0);
+
+    glVertex3f(-2.0, -2.0, 1.0);
+    glVertex3f(-2.0, 1.0, -2.0);
+    glVertex3f(1.0, -2.0, -2.0);
+    glEnd();
+
+    glDisable(GL_BLEND);
+}
+

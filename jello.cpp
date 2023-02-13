@@ -196,6 +196,8 @@ void display()
 
   // show the bounding box
   showBoundingBox();
+
+  showInclinedPlane();
  
   glutSwapBuffers();
 }
@@ -231,6 +233,22 @@ void doIdle()
   glutPostRedisplay();
 }
 
+void computeInclinedPlane(world& jello)
+{
+    jello.incPlanePresent = 1;
+    double x1 = 1.0, y1 = -2.0, z1 = -2.0;
+    double x2 = -2.0, y2 = 1.0, z2 = -2.0;
+    double x3 = -2.0, y3 = -2.0, z3 = 1.0;
+    double a = (y2-y1)*(z3-z1)-(y3-y1)*(z2-z1);
+    double b = (z2-z1)*(x3-x1)-(z3-z1)*(x2-x1);
+    double c = (x2-x1)*(y3-y1)-(x3-x1)*(y2-y1);
+    double d = - a * x1 - b * y1 - c * z1;
+    jello.a = a;
+    jello.b = b;
+    jello.c = c;
+    jello.d = d;
+}
+
 int main (int argc, char ** argv)
 {
   if (argc<2)
@@ -258,6 +276,14 @@ int main (int argc, char ** argv)
   point a = {1,2,3};
   point b = {2,3,4};
   std::cout<<(a - b).z<<std::endl;
+  /*
+   * call Inclined Plane function to compute a, b, c, d
+   */
+  computeInclinedPlane(jello);
+  std::cout<<"a is"<<jello.a<<std::endl;
+  std::cout<<"b is"<<jello.b<<std::endl;
+  std::cout<<"c is"<<jello.c<<std::endl;
+  std::cout<<"d is"<<jello.d<<std::endl;
 
   glutInit(&argc,argv);
   
