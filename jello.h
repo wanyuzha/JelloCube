@@ -56,6 +56,21 @@ struct point
         return  result;
     }
 
+    point operator*(const double right) const
+    {
+        point result = {};
+        result.x = this->x * right;
+        result.y = this->y * right;
+        result.z = this->z * right;
+
+        return  result;
+    }
+
+    friend point operator*(const double left, const point& right)
+    {
+       return right * left;
+    }
+
     double operator*(const point& right) const
     {
         return this->x * right.x + this->y * right.y + this->z * right.z;

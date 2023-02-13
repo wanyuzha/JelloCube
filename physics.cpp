@@ -11,6 +11,7 @@
 
 #define CUBE_MIN_INDEX 0
 #define CUBE_MAX_INDEX 7
+#define BOUNDING_BOX_LENGTH 4.0
 
 double computeOriginalDistance(position& a, position& b)
 {
@@ -151,6 +152,15 @@ std::vector<partitcle> computeCollisionSprings(world * jello, int x, int y, int 
     return collisions;
 }
 
+int computeInterval(double p, double interval, double& proportion)
+{
+    if(p < -2.0 || p > 2.0 || isnan(p))
+        return -1;
+    int index = (int)((p+2.0)/interval);
+    proportion = ((p+2.0)-interval*index)/interval;
+    return index;
+}
+
 /* Computes acceleration to every control point of the jello cube, 
    which is in state given by 'jello'.
    Returns result in array 'a'. */
@@ -174,7 +184,7 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
                   partitcle cur = {.p = jello->p[x][y][z], .pos = {.x = x, .y = y, .z = z}, .v = jello->v[x][y][z]};
                   for(auto & p : springs)
                   {
-                        point Fhook = computeHookLaw(500, cur, p);
+                        point Fhook = computeHookLaw(200, cur, p);
                         point Fdamp = computeDampingLaw(0.2, cur, p);
                         F = F + Fhook + Fdamp;
                   }
@@ -182,9 +192,38 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
                   collisions = computeCollisionSprings(jello, x, y, z);
                   for(auto& p : collisions)
                   {
-                      point FCollisionHook = computeHookLaw(1000, cur, p);
+                      point FCollisionHook = computeHookLaw(2000, cur, p);
                       point FCollisionDamp = computeDampingLaw(0.2, cur, p);
                       F = F + FCollisionHook + FCollisionDamp;
+                  }
+                  // interpolation
+                  if(jello->resolution > 0)
+                  {
+                      double interval = BOUNDING_BOX_LENGTH / (jello->resolution-1);
+                      int res = jello->resolution;
+                      double xp, yp, zp;
+                      int xInterval = computeInterval(jello->p[x][y][z].x, interval, xp);
+                      int yInterval = computeInterval(jello->p[x][y][z].y, interval, yp);
+                      int zInterval = computeInterval(jello->p[x][y][z].z, interval, zp);
+                      if(xInterval >= 0 && xInterval < res
+                      && yInterval >= 0 && yInterval < res
+                      && zInterval >= 0 && zInterval < res)
+                      {
+                          /*F.x = F.x + (1.0-xp) * jello->forceField[xInterval*res*res+yInterval*res+zInterval].x
+                                  + xp * jello->forceField[(xInterval+1)*res*res+yInterval*res+zInterval].x;
+                          F.y = F.y + (1.0-yp) * jello->forceField[xInterval*res*res+yInterval*res+zInterval].y
+                                  + yp * jello->forceField[xInterval*res*res+(yInterval+1)*res+zInterval].y;
+                          F.z = F.z + (1.0-zp) * jello->forceField[xInterval*res*res+yInterval*res+zInterval].z
+                                  + zp * jello->forceField[xInterval*res*res+yInterval*res+(zInterval+1)].z;*/
+                          F = F + (1.0-xp)*(1.0-yp)*(1.0-zp)*jello->forceField[xInterval*res*res+yInterval*res+zInterval]
+                                + xp*(1.0-yp)*(1.0-zp)*jello->forceField[(xInterval+1)*res*res+yInterval*res+zInterval]
+                                + (1.0-xp)*yp*(1.0-zp)*jello->forceField[xInterval*res*res+(yInterval+1)*res+zInterval]
+                                + xp*yp*(1.0-zp)*jello->forceField[(xInterval+1)*res*res+(yInterval+1)*res+zInterval]
+                                + (1.0-xp)*(1.0-yp)*zp*jello->forceField[xInterval*res*res+yInterval*res+(zInterval+1)]
+                                + xp*(1.0-yp)*zp*jello->forceField[(xInterval+1)*res*res+yInterval*res+(zInterval+1)]
+                                + (1.0-xp)*yp*zp*jello->forceField[xInterval*res*res+(yInterval+1)*res+(zInterval+1)]
+                                + xp*yp*zp*jello->forceField[(xInterval+1)*res*res+(yInterval+1)*res+(zInterval+1)];
+                      }
                   }
 
                   a[x][y][z].x = F.x/jello->mass;

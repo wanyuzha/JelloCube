@@ -251,6 +251,7 @@ int main (int argc, char ** argv)
   std::cout<<jello.v[0][0][0].x<<std::endl;
   std::cout<<jello.v[0][0][0].y<<std::endl;
   std::cout<<jello.v[0][0][0].z<<std::endl;
+  std::cout<<jello.resolution<<std::endl;
   /*
    * test operator overloading
    */
