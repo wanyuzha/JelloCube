@@ -31,6 +31,11 @@ int sprite=0;
 // these variables control what is displayed on screen
 int shear=0, bend=0, structural=1, pause=0, viewingMode=0, saveScreenToFile=0;
 
+// aspect ratio
+double aspectRatio = 0;
+
+point startMouse, endMouse;
+
 struct world jello;
 
 int windowWidth, windowHeight;
@@ -67,7 +72,7 @@ void reshape(int w, int h)
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   // Set the perspective
-  double aspectRatio = 1.0 * w / h;
+  aspectRatio = 1.0 * w / h;
   gluPerspective(60.0f, aspectRatio, 0.01f, 1000.0f);
 
   glMatrixMode(GL_MODELVIEW);
@@ -187,10 +192,12 @@ void display()
    *    code starts here, test gl first
    *    hard-core modification test pass
    */
+  if(pause == 0)
   RK4(&jello);
 
   // show the cube
   showCube(&jello);
+  glFlush();
 
   glDisable(GL_LIGHTING);
 
@@ -200,6 +207,111 @@ void display()
   showInclinedPlane();
  
   glutSwapBuffers();
+}
+
+double glReadDepth(double x,double y,double *per=NULL)                  // x,y [pixels], per[16]
+{
+    GLfloat _z=0.0; double m[16],z,zFar,zNear;
+    if (per==NULL){ per=m; glGetDoublev(GL_PROJECTION_MATRIX,per); }    // use actual perspective matrix if not passed
+    zFar =0.5*per[14]*(1.0-((per[10]-1.0)/(per[10]+1.0)));              // compute zFar from perspective matrix
+    zNear=zFar*(per[10]+1.0)/(per[10]-1.0);                             // compute zNear from perspective matrix
+    glReadPixels(x,y,1,1,GL_DEPTH_COMPONENT,GL_FLOAT,&_z);              // read depth value
+    z=_z;                                                               // logarithmic
+    z=(2.0*z)-1.0;                                                      // logarithmic NDC
+    z=(2.0*zNear*zFar)/(zFar+zNear-(z*(zFar-zNear)));                   // linear <zNear,zFar>
+    return -z;
+}
+
+void glUntransform(double x, double y, double z, double *objX, double *objY, double *objZ)
+{
+    GLdouble model[16];
+    GLdouble proj[16];
+    GLint view[4];
+    glGetIntegerv(GL_VIEWPORT, view);
+    glGetDoublev(GL_PROJECTION_MATRIX, proj);
+    glGetDoublev(GL_MODELVIEW_MATRIX, model);
+    gluUnProject(x, y, z, model, proj, view, objX, objY, objZ);
+}
+
+void mouseButton(int button, int state, int x, int y)
+{
+    switch (button)
+    {
+        case GLUT_LEFT_BUTTON:
+            g_iLeftMouseButton = (state==GLUT_DOWN);
+            std::cout<<"x is "<<x<<std::endl;
+            std::cout<<"y is "<<y<<std::endl;
+            float z;
+            glEnable (GL_DEPTH_TEST);
+            glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+            //z = glReadDepth(x, y);
+            std::cout<<"z is "<<z<<std::endl;
+            GLdouble model[16];
+            GLdouble proj[16];
+            GLint view[4];
+            glGetIntegerv(GL_VIEWPORT, view);
+            glGetDoublev(GL_PROJECTION_MATRIX, proj);
+            glGetDoublev(GL_MODELVIEW_MATRIX, model);
+            double objX, objY, objZ;
+            gluUnProject(x, y, 0.5, model, proj, view, &objX, &objY, &objZ);
+            startMouse = {objX, objY, objZ};
+            std::cout<<"obj x is "<<objX<<std::endl;
+            std::cout<<"obj y is "<<objY<<std::endl;
+            std::cout<<"obj z is "<<objZ<<std::endl;
+            pickPoint(x, y, &jello, aspectRatio);
+            break;
+        case GLUT_MIDDLE_BUTTON:
+            g_iMiddleMouseButton = (state==GLUT_DOWN);
+            break;
+        case GLUT_RIGHT_BUTTON:
+            g_iRightMouseButton = (state==GLUT_DOWN);
+            break;
+    }
+
+    g_vMousePos[0] = x;
+    g_vMousePos[1] = y;
+}
+
+/* converts mouse drags into information about rotation/translation/scaling */
+void mouseMotionDrag(int x, int y)
+{
+    int vMouseDelta[2] = {x-g_vMousePos[0], y-g_vMousePos[1]};
+
+    if (g_iRightMouseButton) // handle camera rotations
+    {
+        Phi += vMouseDelta[0] * 0.01;
+        Theta += vMouseDelta[1] * 0.01;
+
+        if (Phi>2*pi)
+            Phi -= 2*pi;
+
+        if (Phi<0)
+            Phi += 2*pi;
+
+        if (Theta>pi / 2 - 0.01) // dont let the point enter the north pole
+            Theta = pi / 2 - 0.01;
+
+        if (Theta<- pi / 2 + 0.01)
+            Theta = -pi / 2 + 0.01;
+
+        g_vMousePos[0] = x;
+        g_vMousePos[1] = y;
+    }
+    else if(g_iLeftMouseButton)
+    {
+        double objX, objY, objZ;
+        glUntransform(x, windowHeight - y, 1.0, &objX, &objY, &objZ);
+        std::cout<<"new obj x is "<<objX<<std::endl;
+        std::cout<<"new obj y is "<<objY<<std::endl;
+        std::cout<<"new obj z is "<<objZ<<std::endl;
+        endMouse = {objX, objY, objZ};
+        point unit_vector = endMouse - startMouse;
+        double unit_length = sqrt(unit_vector * unit_vector);
+        unit_vector = 1/unit_length * unit_vector;
+        double length = sqrt(vMouseDelta[0] * vMouseDelta[0] + vMouseDelta[1] * vMouseDelta[1]);
+        // one deform function to call (vector of direction and magnitude (x,y)-())
+        pullPoint(unit_vector, length, &jello);
+    }
 }
 
 void doIdle()

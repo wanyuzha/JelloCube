@@ -7,6 +7,10 @@
 
 #include "jello.h"
 #include "showCube.h"
+#include "iostream"
+
+GLuint hitName;
+point baseCoord;
 
 int pointMap(int side, int i, int j)
 {
@@ -35,6 +39,32 @@ int pointMap(int side, int i, int j)
   }
 
   return r;
+}
+
+void processHits (GLint hits, GLuint buffer[])
+{
+    unsigned int i, j;
+    GLuint names, *ptr;
+
+    printf ("hits = %d\n", hits);
+    ptr = (GLuint *) buffer;
+    if(hits <= 0)
+    {
+        hitName = 0;
+    }
+    for (i = 0; i < hits; i++) { /*  for each hit  */
+        names = *ptr;
+        printf (" number of names for hit = %d\n", names); ptr++;
+        printf("  z1 is %g;", (float) *ptr/0x7fffffff); ptr++;
+        printf(" z2 is %g\n", (float) *ptr/0x7fffffff); ptr++;
+        printf ("   the name is ");
+        for (j = 0; j < names; j++) {     /*  for each name */
+            printf ("%d ", *ptr);
+            hitName = *ptr;
+            ptr++;
+        }
+        printf ("\n");
+    }
 }
 
 void showCube(struct world * jello)
@@ -73,7 +103,8 @@ void showCube(struct world * jello)
       glVertex3f(jello->p[ip][jp][kp].x,jello->p[ip][jp][kp].y,jello->p[ip][jp][kp].z);\
     }\
 
- 
+#define BUFSIZE 512
+
   if (viewingMode==0) // render wireframe
   {
     glLineWidth(1);
@@ -86,8 +117,13 @@ void showCube(struct world * jello)
           if (i*j*k*(7-i)*(7-j)*(7-k) != 0) // not surface point
             continue;
 
+            //if(i == 0)
+                //glLoadName(i*8*8+j*8+k+1);
           glBegin(GL_POINTS); // draw point
-            glColor4f(0,0,0,0);  
+            if(i*8*8+j*8+k+1 == 56)
+                glColor4f(1,0,0,0);
+            else
+                glColor4f(0,0,0,0);
             glVertex3f(jello->p[i][j][k].x,jello->p[i][j][k].y,jello->p[i][j][k].z);        
           glEnd();
 
@@ -149,6 +185,7 @@ void showCube(struct world * jello)
           glEnd();
         }
     glEnable(GL_LIGHTING);
+
   }
   
   else
@@ -228,6 +265,109 @@ void showCube(struct world * jello)
     }  
   } // end for loop over faces
   glFrontFace(GL_CCW);
+
+
+    // try to add GL SELECT Code here
+    GLuint selectBuf[BUFSIZE];
+    GLint hits;
+
+    glSelectBuffer(BUFSIZE, selectBuf);
+    glRenderMode(GL_SELECT);
+    glInitNames();
+    glPushName(0);
+
+    for (i=0; i<=7; i++)
+        for (j=0; j<=7; j++)
+            for (k=0; k<=7; k++)
+            {
+                if (i*j*k*(7-i)*(7-j)*(7-k) != 0) // not surface point
+                    continue;
+
+                //if(i == 0)
+                    glLoadName(i*8*8+j*8+k+1);
+                glBegin(GL_POINTS); // draw point
+                if(i*8*8+j*8+k+1 == 56)
+                    glColor4f(1,0,0,0);
+                else
+                    glColor4f(0,0,0,0);
+                glVertex3f(jello->p[i][j][k].x,jello->p[i][j][k].y,jello->p[i][j][k].z);
+                glEnd();
+            }
+
+    glFlush();
+    hits = glRenderMode (GL_RENDER);
+    //processHits (hits, selectBuf);
+}
+
+void pickPoint(int x, int y, world* jello, double aspectRatio)
+{
+    GLuint selectBuf[BUFSIZE];
+    GLint hits;
+    GLint viewport[4];
+
+    glGetIntegerv (GL_VIEWPORT, viewport);
+
+    glSelectBuffer (BUFSIZE, selectBuf);
+    (void) glRenderMode (GL_SELECT);
+
+    glInitNames();
+    glPushName(0);
+
+    glMatrixMode (GL_PROJECTION);
+    glPushMatrix ();
+    glLoadIdentity ();
+/*  create 5x5 pixel picking region near cursor location      */
+    gluPickMatrix ((GLdouble) x, (GLdouble) (viewport[3] - y),
+                   5.0, 5.0, viewport);
+    gluPerspective(60.0f, aspectRatio, 0.01f, 1000.0f);
+    int i, j, k;
+    for (i=0; i<=7; i++)
+        for (j=0; j<=7; j++)
+            for (k=0; k<=7; k++)
+            {
+                if (i*j*k*(7-i)*(7-j)*(7-k) != 0) // not surface point
+                    continue;
+
+                //if(i == 0)
+                glLoadName(i*8*8+j*8+k+1);
+                glBegin(GL_POINTS); // draw point
+                glColor4f(0,0,0,0);
+                glVertex3f(jello->p[i][j][k].x,jello->p[i][j][k].y,jello->p[i][j][k].z);
+                glEnd();
+            }
+
+    glMatrixMode (GL_PROJECTION);
+    glPopMatrix ();
+    glFlush ();
+
+    hits = glRenderMode (GL_RENDER);
+    processHits (hits, selectBuf);
+    //try to memorize i,j,k index
+    if(hitName > 0)
+    {
+        i = (int)(hitName-1) / (8*8);
+        j = ((int)(hitName-1) - i * 8 * 8)/8;
+        k = (int)(hitName-1)-i*8*8-j*8;
+        baseCoord = jello->p[i][j][k];
+    }
+    glutPostRedisplay();
+}
+
+void pullPoint(point unit_vector, double length, world* jello)
+{
+    if(hitName > 0)
+    {
+        int i = (int)(hitName-1) / (8*8);
+        int j = ((int)(hitName-1) - i * 8 * 8)/8;
+        int k = (int)(hitName-1)-i*8*8-j*8;
+        std::cout<<"i is "<<i<<std::endl;
+        std::cout<<"j is "<<j<<std::endl;
+        std::cout<<"k is "<<k<<std::endl;
+
+        jello->p[i][j][k].x = baseCoord.x + fmin(length / 400 * unit_vector.x, 0.25);
+        jello->p[i][j][k].y = baseCoord.y + fmin(length / 400 * unit_vector.y, 0.25);
+        jello->p[i][j][k].z = baseCoord.z + fmin(length / 400 * unit_vector.z, 0.25);
+    }
 }
 
 void showBoundingBox()

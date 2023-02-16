@@ -15,4 +15,8 @@ void showBoundingBox();
 
 void showInclinedPlane();
 
+void pickPoint(int x, int y, world* jello, double aspectRatio);
+
+void pullPoint(point unit_vector, double length, world* jello);
+
 #endif

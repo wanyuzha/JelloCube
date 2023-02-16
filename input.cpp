@@ -33,32 +33,6 @@ void saveScreenshot(int windowWidth, int windowHeight, char *filename)
   pic_free(in);
 }
 
-/* converts mouse drags into information about rotation/translation/scaling */
-void mouseMotionDrag(int x, int y)
-{
-  int vMouseDelta[2] = {x-g_vMousePos[0], y-g_vMousePos[1]};
-
-  if (g_iRightMouseButton) // handle camera rotations
-  {
-    Phi += vMouseDelta[0] * 0.01;
-    Theta += vMouseDelta[1] * 0.01;
-    
-    if (Phi>2*pi)
-      Phi -= 2*pi;
-    
-    if (Phi<0)
-      Phi += 2*pi;
-    
-    if (Theta>pi / 2 - 0.01) // dont let the point enter the north pole
-      Theta = pi / 2 - 0.01;
-    
-    if (Theta<- pi / 2 + 0.01)
-      Theta = -pi / 2 + 0.01;
-    
-    g_vMousePos[0] = x;
-    g_vMousePos[1] = y;
-  }
-}
 
 void mouseMotion (int x, int y)
 {
@@ -66,24 +40,6 @@ void mouseMotion (int x, int y)
   g_vMousePos[1] = y;
 }
 
-void mouseButton(int button, int state, int x, int y)
-{
-  switch (button)
-  {
-    case GLUT_LEFT_BUTTON:
-      g_iLeftMouseButton = (state==GLUT_DOWN);
-      break;
-    case GLUT_MIDDLE_BUTTON:
-      g_iMiddleMouseButton = (state==GLUT_DOWN);
-      break;
-    case GLUT_RIGHT_BUTTON:
-      g_iRightMouseButton = (state==GLUT_DOWN);
-      break;
-  }
- 
-  g_vMousePos[0] = x;
-  g_vMousePos[1] = y;
-}
 
 // gets called whenever a key is pressed
 void keyboardFunc (unsigned char key, int x, int y)
