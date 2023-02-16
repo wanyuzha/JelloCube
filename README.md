@@ -55,11 +55,11 @@ This documentation is to clarify the basic steps of simulator
   * Apply the force field with tri-linear interpolation
 
 
-$$ F = F_{hook} + F_{damp} + F{Force field} $$
+$$ F = F_{hook} + F_{damp} + F_{Force_field} $$
 
-$$ F_{hook} = F_{normal spring hook} + F_{collision spring hook} + F_{inclined plane collision spring hook} $$
+$$ F_{hook} = Fh_{normal spring} + Fh_{collision_spring} + Fh_{inclined_plane_collision_spring} $$
 
-$$ F_{damp} = F_{normal spring damp} + F_{collision spring damp} + F_{inclined plane collision spring damp} $$
+$$ F_{damp} = Fd_{normal spring} + Fd_{collision_spring} + Fd_{inclined_plane_collision_spring} $$
 
 ### OpenGL Selection
 Reference: [Selection and Feedback](https://www.glprogramming.com/red/chapter13.html) (Chapter 13)
