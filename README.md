@@ -53,10 +53,14 @@ This documentation is to clarify the basic steps of simulator
   * Call computeInclinedCollision to get back all the collision springs with inclined plane
   * Call computeHookLaw, computeDampingLaw function to compute Force F
   * Apply the force field with tri-linear interpolation
+
+
 $$ F = F_{hook} + F_{damp} + F{Force field} $$
 
-$$ F_{hook} = F_{normal spring hook} + F_{collision spring hook} + F{inclined plane collision spring hook} $$
-$$ F_{damp} = F_{normal spring damp} + F_{collision spring damp} + F{inclined plane collision spring damp} $$
+$$ F_{hook} = F_{normal spring hook} + F_{collision spring hook} + F_{inclined plane collision spring hook} $$
+
+$$ F_{damp} = F_{normal spring damp} + F_{collision spring damp} + F_{inclined plane collision spring damp} $$
+
 ### OpenGL Selection
 Reference: [Selection and Feedback](https://www.glprogramming.com/red/chapter13.html) (Chapter 13)
 #### Selection by gluPickMatrix
