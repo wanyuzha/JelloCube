@@ -16,12 +16,12 @@ the mass point with mouse.
         <td align="center">jello wireframe model</td>
     </tr>
     <tr>
-        <td><img src="https://github.com/wanyuzha/JelloCube/blob/main/img/surface.gif" width="320" height="240" alt=""></td>
         <td><img src="https://github.com/wanyuzha/JelloCube/blob/main/img/select.gif" width="320" height="240" alt=""></td>
+        <td><img src="https://github.com/wanyuzha/JelloCube/blob/main/img/surface.gif" width="320" height="240" alt=""></td>
     </tr>
     <tr>
-        <td align="center">jello surface model + selection</td>
         <td align="center">jello wireframe model + selection</td>
+        <td align="center">jello surface model + selection</td>
     </tr>
 </table>
 
