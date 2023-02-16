@@ -13,6 +13,12 @@
 #define CUBE_MAX_INDEX 7
 #define BOUNDING_BOX_LENGTH 4.0
 
+/*
+ *  compute original distance of two mass points, it is implemented by compute the distance of their index
+ *  and because of the distance of two nearby mass point is 1/7m, we transform it into real distance
+ *  e.g. on diagonal sqrt(2)/7 m
+ *  A quick way to solve the problem
+ */
 double computeOriginalDistance(position& a, position& b)
 {
     return sqrt((a.x - b.x) * (a.x - b.x)
@@ -20,6 +26,9 @@ double computeOriginalDistance(position& a, position& b)
                 + (a.z - b.z) * (a.z - b.z))/7;
 }
 
+/*
+ * compute current distance by their jello->p
+ */
 double computeCurrentDistance(point& a, point& b)
 {
     return sqrt((a.x - b.x) * (a.x - b.x)
@@ -27,6 +36,11 @@ double computeCurrentDistance(point& a, point& b)
         + (a.z - b.z) * (a.z - b.z));
 }
 
+/*
+ * this is a general function designed for compute hookLaw F
+ * we accustom different springs (structural, bend, shear, collision) to it
+ * In the following function we will explain how we accustom collision springs to it
+ */
 point computeHookLaw(double kHook, partitcle& a, partitcle &b)
 {
     double L = computeCurrentDistance(a.p, b.p);
@@ -37,6 +51,10 @@ point computeHookLaw(double kHook, partitcle& a, partitcle &b)
     return F;
 }
 
+/*
+ * A general function design. Same idea with HookLaw
+ * Different springs (structural, bend, shear, collision) could be applied to it
+ */
 point computeDampingLaw(double kDamp, partitcle &a, partitcle& b)
 {
     double L = computeCurrentDistance(a.p, b.p);
@@ -46,6 +64,10 @@ point computeDampingLaw(double kDamp, partitcle &a, partitcle& b)
     return F;
 }
 
+/*
+ * if the neighbour of current point out of range, I don't want to manually check according to if it is inside or on the surface
+ * design this function simply check
+ */
 bool checkBoundary(int x, int y, int z, int i, int j, int k)
 {
     // return true if inside boundary
@@ -54,11 +76,19 @@ bool checkBoundary(int x, int y, int z, int i, int j, int k)
         && (z + k >= CUBE_MIN_INDEX && z + k <= CUBE_MAX_INDEX);
 }
 
+/*
+ * quick function to check if it is out of bounding box
+ */
 bool checkOutsideBoundingBox(point* p)
 {
     return (p->x<-2 || p->x>2) || (p->y<-2 || p->y>2) || (p->z<-2 || p->z>2);
 }
 
+/*
+ * this is to compute all the structural springs of one point and return them back in vector
+ *
+ * we create one new struct called particle here, for more info, check jello.h
+ */
 std::vector<partitcle> computeSprings(world * jello, int x, int y, int z)
 {
     std::vector<partitcle> springs;
@@ -71,6 +101,7 @@ std::vector<partitcle> computeSprings(world * jello, int x, int y, int z)
      * since it either be a structural spring or a shear spring
      * For instance in a 3 X 3 grids, the center node has 6 structural nodes and 20 shear nodes,
      * adding them up plus one center node makes total 27 (3 X 3 X 3) nodes.
+     * Any edge cases could be eliminated by checkBoundary() function
      */
     for(int i = -1; i < 2; i++)
     {
@@ -128,6 +159,14 @@ std::vector<partitcle> computeSprings(world * jello, int x, int y, int z)
     return springs;
 }
 
+/*
+ * compute collision springs and return them back
+ * if it is outside the bounding box, adding it
+ * One thing to remind is the rest length of collision point and mass point is zero
+ * so I simply assign same values of .pos to collision point, saying it the relative position of collision point
+ * and mass point is 0, which means rest length is 0
+ * real length is simply compute on one axis because the bounding box is axis-aligned
+ */
 std::vector<partitcle> computeCollisionSprings(world * jello, int x, int y, int z)
 {
     std::vector<partitcle>  collisions;
@@ -152,6 +191,11 @@ std::vector<partitcle> computeCollisionSprings(world * jello, int x, int y, int 
     return collisions;
 }
 
+/*
+ * For field force, have to compute the mass point is in which interval
+ * e.g. n = 3, and x-coord of mass point is -1, then point is in the first interval of x-axis
+ * index starts from 0
+ */
 int computeInterval(double p, double interval, double& proportion)
 {
     if(p < -2.0 || p > 2.0 || isnan(p))
@@ -162,6 +206,11 @@ int computeInterval(double p, double interval, double& proportion)
 }
 
 
+/*
+ * to compute Inclined Collision, using the sign of point X Normal vector
+ * if there is a collision, compute the projection point on the plane and create a new collision point
+ * Same rest length is zero
+ */
 std::vector<partitcle> computeInclinedCollision(world * jello, int x, int y, int z)
 {
     std::vector<partitcle> inclinedCollisions;
@@ -191,6 +240,18 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
        * */
       std::vector<partitcle> springs;
       std::vector<partitcle> collisions;
+      /*
+       * To make it simple
+       * For each i,j,k I design the general process
+       * Call computeSprings to get back all the structural,shear,bend springs
+       * Call computeHookLaw, computeDampingLaw function to compute Force F
+       * Call computeCollisionSprings to get back all the collision springs with bounding box
+       * Call computeHookLaw, computeDampingLaw function to compute Force F
+       * Call computeInclinedCollision to get back all the collision springs with inclined plane
+       * Call computeHookLaw, computeDampingLaw function to compute Force F
+       * Apply the force field with tri-linear interpolation
+       *
+       */
       for(int x = 0; x < 8; x++)
       {
           for(int y = 0; y < 8; y++)
@@ -228,6 +289,9 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
                   // interpolation
                   if(jello->resolution > 0)
                   {
+                      /*
+                       * where there are 3 force points, only 2 intervals
+                       */
                       double interval = BOUNDING_BOX_LENGTH / (jello->resolution-1);
                       int res = jello->resolution;
                       double xp, yp, zp;
@@ -238,12 +302,6 @@ void computeAcceleration(struct world * jello, struct point a[8][8][8])
                       && yInterval >= 0 && yInterval < res
                       && zInterval >= 0 && zInterval < res)
                       {
-                          /*F.x = F.x + (1.0-xp) * jello->forceField[xInterval*res*res+yInterval*res+zInterval].x
-                                  + xp * jello->forceField[(xInterval+1)*res*res+yInterval*res+zInterval].x;
-                          F.y = F.y + (1.0-yp) * jello->forceField[xInterval*res*res+yInterval*res+zInterval].y
-                                  + yp * jello->forceField[xInterval*res*res+(yInterval+1)*res+zInterval].y;
-                          F.z = F.z + (1.0-zp) * jello->forceField[xInterval*res*res+yInterval*res+zInterval].z
-                                  + zp * jello->forceField[xInterval*res*res+yInterval*res+(zInterval+1)].z;*/
                           F = F + (1.0-xp)*(1.0-yp)*(1.0-zp)*jello->forceField[xInterval*res*res+yInterval*res+zInterval]
                                 + xp*(1.0-yp)*(1.0-zp)*jello->forceField[(xInterval+1)*res*res+yInterval*res+zInterval]
                                 + (1.0-xp)*yp*(1.0-zp)*jello->forceField[xInterval*res*res+(yInterval+1)*res+zInterval]

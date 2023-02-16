@@ -41,12 +41,17 @@ int pointMap(int side, int i, int j)
   return r;
 }
 
+/*
+ * using the function given by OpenGL Red Book, Chapter 13
+ * hits return back the name of hit point
+ * assign it to global var hitName
+ */
 void processHits (GLint hits, GLuint buffer[])
 {
     unsigned int i, j;
     GLuint names, *ptr;
 
-    printf ("hits = %d\n", hits);
+    //printf ("hits = %d\n", hits);
     ptr = (GLuint *) buffer;
     if(hits <= 0)
     {
@@ -117,10 +122,12 @@ void showCube(struct world * jello)
           if (i*j*k*(7-i)*(7-j)*(7-k) != 0) // not surface point
             continue;
 
-            //if(i == 0)
-                //glLoadName(i*8*8+j*8+k+1);
+
           glBegin(GL_POINTS); // draw point
-            if(i*8*8+j*8+k+1 == 56)
+          /*
+           * when the drag point is selected by mouse, make it red
+           */
+            if(i*8*8+j*8+k+1 == hitName)
                 glColor4f(1,0,0,0);
             else
                 glColor4f(0,0,0,0);
@@ -265,40 +272,14 @@ void showCube(struct world * jello)
     }  
   } // end for loop over faces
   glFrontFace(GL_CCW);
-
-
-    // try to add GL SELECT Code here
-    GLuint selectBuf[BUFSIZE];
-    GLint hits;
-
-    glSelectBuffer(BUFSIZE, selectBuf);
-    glRenderMode(GL_SELECT);
-    glInitNames();
-    glPushName(0);
-
-    for (i=0; i<=7; i++)
-        for (j=0; j<=7; j++)
-            for (k=0; k<=7; k++)
-            {
-                if (i*j*k*(7-i)*(7-j)*(7-k) != 0) // not surface point
-                    continue;
-
-                //if(i == 0)
-                    glLoadName(i*8*8+j*8+k+1);
-                glBegin(GL_POINTS); // draw point
-                if(i*8*8+j*8+k+1 == 56)
-                    glColor4f(1,0,0,0);
-                else
-                    glColor4f(0,0,0,0);
-                glVertex3f(jello->p[i][j][k].x,jello->p[i][j][k].y,jello->p[i][j][k].z);
-                glEnd();
-            }
-
-    glFlush();
-    hits = glRenderMode (GL_RENDER);
-    //processHits (hits, selectBuf);
 }
 
+/*
+ * This is the selection and picking process
+ * Learn from chapter 13 in select mode, the SelectBuffer returns all the showing objects
+ * Therefore, apply only 5*5 pixel ranges of cursor as the picking area
+ * and get back which point is selected by referring to its name
+ */
 void pickPoint(int x, int y, world* jello, double aspectRatio)
 {
     GLuint selectBuf[BUFSIZE];
@@ -319,6 +300,9 @@ void pickPoint(int x, int y, world* jello, double aspectRatio)
 /*  create 5x5 pixel picking region near cursor location      */
     gluPickMatrix ((GLdouble) x, (GLdouble) (viewport[3] - y),
                    5.0, 5.0, viewport);
+    /*
+     * projection matrix to transform
+     */
     gluPerspective(60.0f, aspectRatio, 0.01f, 1000.0f);
     int i, j, k;
     for (i=0; i<=7; i++)
@@ -329,6 +313,9 @@ void pickPoint(int x, int y, world* jello, double aspectRatio)
                     continue;
 
                 //if(i == 0)
+                /*
+                 * loadName gives each point an ID
+                 */
                 glLoadName(i*8*8+j*8+k+1);
                 glBegin(GL_POINTS); // draw point
                 glColor4f(0,0,0,0);
@@ -353,6 +340,10 @@ void pickPoint(int x, int y, world* jello, double aspectRatio)
     glutPostRedisplay();
 }
 
+/*
+ * When you know which point is being pulled, you have to change the position of it to deform the cube
+ * I apply the maximum range limitation to ensure that the cube could be transformed back to steady state
+ */
 void pullPoint(point unit_vector, double length, world* jello)
 {
     if(hitName > 0)
@@ -360,9 +351,9 @@ void pullPoint(point unit_vector, double length, world* jello)
         int i = (int)(hitName-1) / (8*8);
         int j = ((int)(hitName-1) - i * 8 * 8)/8;
         int k = (int)(hitName-1)-i*8*8-j*8;
-        std::cout<<"i is "<<i<<std::endl;
-        std::cout<<"j is "<<j<<std::endl;
-        std::cout<<"k is "<<k<<std::endl;
+        //std::cout<<"i is "<<i<<std::endl;
+        //std::cout<<"j is "<<j<<std::endl;
+        //std::cout<<"k is "<<k<<std::endl;
 
         jello->p[i][j][k].x = baseCoord.x + fmin(length / 400 * unit_vector.x, 0.25);
         jello->p[i][j][k].y = baseCoord.y + fmin(length / 400 * unit_vector.y, 0.25);
@@ -431,6 +422,9 @@ void showBoundingBox()
   return;
 }
 
+/*
+ * show the inclined plane
+ */
 void showInclinedPlane()
 {
     glColor4f(1.0, 0.92, 0.80, 0.5);

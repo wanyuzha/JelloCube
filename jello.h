@@ -30,6 +30,10 @@ extern int sprite;
 extern int g_vMousePos[2];
 extern int g_iLeftMouseButton,g_iMiddleMouseButton,g_iRightMouseButton;
 
+/*
+ *  modify the point structural to accommodate different operations
+ *  here override operations of multiply, add, minus, multiply with scalar
+ */
 struct point 
 {
    double x;
@@ -84,6 +88,12 @@ struct position
     int z;
 };
 
+/*
+ * partitcle is described as one mass point with its real position in the world
+ * relative position in the cube (jello->p[i][j][k])
+ * velocity of mass point
+ * design this because I don't want to visit jello everytime with i,j,k
+ */
 struct partitcle
 {
     // refers to real position in the world

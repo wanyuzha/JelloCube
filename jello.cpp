@@ -47,7 +47,7 @@ void myinit()
   gluPerspective(90.0,1.0,0.01,1000.0);
 
   // set background color to grey
-  glClearColor(0.5, 0.5, 0.5, 0.0);
+  glClearColor(0.972,0.658,0.47, 0.0);
 
   glCullFace(GL_BACK);
   glEnable(GL_CULL_FACE);
@@ -209,18 +209,6 @@ void display()
   glutSwapBuffers();
 }
 
-double glReadDepth(double x,double y,double *per=NULL)                  // x,y [pixels], per[16]
-{
-    GLfloat _z=0.0; double m[16],z,zFar,zNear;
-    if (per==NULL){ per=m; glGetDoublev(GL_PROJECTION_MATRIX,per); }    // use actual perspective matrix if not passed
-    zFar =0.5*per[14]*(1.0-((per[10]-1.0)/(per[10]+1.0)));              // compute zFar from perspective matrix
-    zNear=zFar*(per[10]+1.0)/(per[10]-1.0);                             // compute zNear from perspective matrix
-    glReadPixels(x,y,1,1,GL_DEPTH_COMPONENT,GL_FLOAT,&_z);              // read depth value
-    z=_z;                                                               // logarithmic
-    z=(2.0*z)-1.0;                                                      // logarithmic NDC
-    z=(2.0*zNear*zFar)/(zFar+zNear-(z*(zFar-zNear)));                   // linear <zNear,zFar>
-    return -z;
-}
 
 void glUntransform(double x, double y, double z, double *objX, double *objY, double *objZ)
 {
@@ -239,13 +227,9 @@ void mouseButton(int button, int state, int x, int y)
     {
         case GLUT_LEFT_BUTTON:
             g_iLeftMouseButton = (state==GLUT_DOWN);
-            std::cout<<"x is "<<x<<std::endl;
-            std::cout<<"y is "<<y<<std::endl;
             float z;
             glEnable (GL_DEPTH_TEST);
             glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
-            //z = glReadDepth(x, y);
-            std::cout<<"z is "<<z<<std::endl;
             GLdouble model[16];
             GLdouble proj[16];
             GLint view[4];
@@ -255,9 +239,6 @@ void mouseButton(int button, int state, int x, int y)
             double objX, objY, objZ;
             gluUnProject(x, y, 0.5, model, proj, view, &objX, &objY, &objZ);
             startMouse = {objX, objY, objZ};
-            std::cout<<"obj x is "<<objX<<std::endl;
-            std::cout<<"obj y is "<<objY<<std::endl;
-            std::cout<<"obj z is "<<objZ<<std::endl;
             pickPoint(x, y, &jello, aspectRatio);
             break;
         case GLUT_MIDDLE_BUTTON:
@@ -301,9 +282,6 @@ void mouseMotionDrag(int x, int y)
     {
         double objX, objY, objZ;
         glUntransform(x, windowHeight - y, 1.0, &objX, &objY, &objZ);
-        std::cout<<"new obj x is "<<objX<<std::endl;
-        std::cout<<"new obj y is "<<objY<<std::endl;
-        std::cout<<"new obj z is "<<objZ<<std::endl;
         endMouse = {objX, objY, objZ};
         point unit_vector = endMouse - startMouse;
         double unit_length = sqrt(unit_vector * unit_vector);
@@ -328,7 +306,7 @@ void doIdle()
   if (saveScreenToFile==1)
   {
     saveScreenshot(windowWidth, windowHeight, s);
-    saveScreenToFile=0; // save only once, change this if you want continuos image generation (i.e. animation)
+    //saveScreenToFile=0; // save only once, change this if you want continuos image generation (i.e. animation)
     sprite++;
   }
 
@@ -372,30 +350,14 @@ int main (int argc, char ** argv)
 
   readWorld(argv[1],&jello);
 
-  //jello.dt = 0.0005;
-  /*
-   * Added by Wanyu Zhang
-   * */
-  std::cout<<jello.dt<<std::endl;
-  std::cout<<jello.mass<<std::endl;
-  std::cout<<jello.v[0][0][0].x<<std::endl;
-  std::cout<<jello.v[0][0][0].y<<std::endl;
-  std::cout<<jello.v[0][0][0].z<<std::endl;
-  std::cout<<jello.resolution<<std::endl;
-  /*
-   * test operator overloading
-   */
-  point a = {1,2,3};
-  point b = {2,3,4};
-  std::cout<<(a - b).z<<std::endl;
   /*
    * call Inclined Plane function to compute a, b, c, d
    */
   computeInclinedPlane(jello);
-  std::cout<<"a is"<<jello.a<<std::endl;
-  std::cout<<"b is"<<jello.b<<std::endl;
-  std::cout<<"c is"<<jello.c<<std::endl;
-  std::cout<<"d is"<<jello.d<<std::endl;
+  //std::cout<<"a is"<<jello.a<<std::endl;
+  //std::cout<<"b is"<<jello.b<<std::endl;
+  //std::cout<<"c is"<<jello.c<<std::endl;
+  //std::cout<<"d is"<<jello.d<<std::endl;
 
   glutInit(&argc,argv);
   
