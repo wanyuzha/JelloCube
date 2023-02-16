@@ -22,6 +22,8 @@ Extra Credits:
 - Added one inclined plane to the scene and accomplished the force of collision springs with inclined plane
 - Applied selection feature of OpenGL to the project to give users a more interactive way to pull mass point from
   the cube. When the point is selected by the mouse, the point will be red.
+  The selection area is pretty sensitive with only 5 X 5 pixels, so it will be easy to trigger the effect when
+  zoom in and drag the mass point accurately.
 
 Submission Requirement
 - Source code
